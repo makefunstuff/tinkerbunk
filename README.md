@@ -13,7 +13,7 @@ Just recreational programming doing some probably useless stuff
 This is pool of ideas of what to implement in zig
 
 - [x] naive ls implementation
-- [ ] naive socket server
+- [x] naive socket server
 - [ ] naive grep implementation
 - [ ] render some stuff with sdl
 - [ ] play with raylib
