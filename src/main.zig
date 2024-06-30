@@ -1,5 +1,6 @@
 const std = @import("std");
 const ls = @import("ls.zig");
+const socket_server = @import("socket-server.zig");
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -16,6 +17,10 @@ pub fn main() !void {
     if (args.len == 2 and std.mem.eql(u8, args[1], "ls")) {
         try ls.ls();
         return;
+    }
+
+    if (args.len == 2 and std.mem.eql(u8, args[1], "tcp-foo")) {
+        try socket_server.start_server();
     }
 
     std.debug.print("Unknown command. Use 'help' for usage information.\n", .{});
