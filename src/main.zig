@@ -1,6 +1,7 @@
 const std = @import("std");
 const ls = @import("ls.zig");
 const socket_server = @import("socket-server.zig");
+const sdl_window = @import("sdl-window.zig");
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -21,6 +22,10 @@ pub fn main() !void {
 
     if (args.len == 2 and std.mem.eql(u8, args[1], "tcp-foo")) {
         try socket_server.start_server();
+    }
+
+    if (args.len == 2 and std.mem.eql(u8, args[1], "window")) {
+        try sdl_window.present_sdl_window();
     }
 
     std.debug.print("Unknown command. Use 'help' for usage information.\n", .{});
