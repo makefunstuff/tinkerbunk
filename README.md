@@ -3,6 +3,12 @@
 This repo is basically me learning some zig.
 Just recreational programming doing some probably useless stuff
 
+## Why zig?
+* C but without buid tool complexity, I "love" wasting time with makefiles
+* minimalistic and powerfull at the same time
+* more developer and less verbose than rust
+* no llm or copilot suport
+
 ## TODO:
 This is pool of ideas of what to implement in zig
 
