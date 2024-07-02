@@ -15,6 +15,6 @@ This is pool of ideas of what to implement in zig
 - [x] naive ls implementation
 - [x] naive socket server
 - [ ] naive grep implementation
-- [ ] render some stuff with sdl
+- [x] render some stuff with sdl
 - [ ] play with raylib
-- [ ] interop with c project
+- [x] interop with c project
