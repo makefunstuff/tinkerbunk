@@ -3,7 +3,16 @@ const ls = @import("ls.zig");
 const socket_server = @import("socket-server.zig");
 const sdl_window = @import("sdl-window.zig");
 
-const commands = [_]u8{ "ls", "tcp", "window", "brr" };
+const commands = [_]struct {
+    name: []const u8,
+    command: Command,
+}{
+    .{ .name = "ls", .command = Command.LS },
+    .{ .name = "tcp", .command = Command.TCP },
+    .{ .name = "window", .command = Command.WINDOW },
+    .{ .name = "brr", .command = Command.BRR },
+};
+
 const Command = enum {
     LS,
     TCP,
@@ -15,11 +24,15 @@ const Arg = struct {
     const Self = @This();
 
     name: []const u8,
-    command: Command,
+    command: Command = undefined,
 
-    fn parse(self: *Self) void {
+    fn parse(self: *Self) !void {
         inline for (commands) |command| {
-            if (std.mem.eql([]u8, command, self.name)) {}
+            if (std.mem.eql(u8, command.name, self.name)) {
+                self.command = command.command;
+            } else {
+                return error.CommandNotFound;
+            }
         }
     }
 };
@@ -37,7 +50,20 @@ pub fn main() !void {
         return;
     }
 
-    if (args.len == 2) {}
+    if (args.len == 2) {
+        var argument = Arg{
+            .name = args[1],
+        };
+        try argument.parse();
+        switch (argument.command) {
+            .LS => try ls.ls(),
+            .TCP => try socket_server.start_server(),
+            .WINDOW => try sdl_window.present_sdl_window(),
+            else => {
+                return;
+            },
+        }
+    }
 
     std.debug.print("Unknown command. Use 'help' for usage information.\n", .{});
     print_help();
