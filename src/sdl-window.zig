@@ -23,9 +23,6 @@ pub fn present_sdl_window() !void {
     };
     defer c.SDL_DestroyRenderer(renderer);
 
-    const color = c.SDL_Color{ .r = 255, .g = 255, .b = 255, .a = 255 };
-    _ = c.SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
-
     const rect_height = 100;
     const rect_width = 100;
 
@@ -40,16 +37,21 @@ pub fn present_sdl_window() !void {
 
         while (c.SDL_PollEvent(&event) != 0) {
             switch (event.type) {
-                c.SDL_Quit => {
+                c.SDL_QUIT => {
                     quit = true;
                 },
                 else => {},
             }
         }
-        _ = c.SDL_RenderFillRect(renderer, &rect);
-        _ = c.SDL_RenderClear(renderer);
-        _ = c.SDL_RenderPresent(renderer);
+        const bg_color = c.SDL_Color{ .r = 255, .g = 255, .b = 255, .a = 255 };
+        _ = c.SDL_SetRenderDrawColor(renderer, bg_color.r, bg_color.g, bg_color.b, bg_color.a);
 
-        _ = c.SDL_Delay(20);
+        _ = c.SDL_RenderClear(renderer);
+
+        const rect_color = c.SDL_Color{ .r = 0, .g = 0, .b = 255, .a = 255 };
+        _ = c.SDL_SetRenderDrawColor(renderer, rect_color.r, rect_color.g, rect_color.b, rect_color.a);
+
+        _ = c.SDL_RenderFillRect(renderer, &rect);
+        _ = c.SDL_RenderPresent(renderer);
     }
 }
