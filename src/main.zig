@@ -27,11 +27,9 @@ const Arg = struct {
     command: Command = undefined,
 
     fn parse(self: *Self) !void {
-        inline for (commands) |command| {
-            if (std.mem.eql(u8, command.name, self.name)) {
-                self.command = command.command;
-            } else {
-                return error.CommandNotFound;
+        inline for (commands) |cmd| {
+            if (std.mem.eql(u8, cmd.name, self.name)) {
+                self.command = cmd.command;
             }
         }
     }
