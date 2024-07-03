@@ -67,10 +67,6 @@ pub fn main() !void {
     print_help();
 }
 
-fn arg_is(arg: []const u8, target: []const u8) bool {
-    return std.mem.eql(u8, arg, target);
-}
-
 fn print_help() void {
     std.debug.print("[usage] tinkerbunk ls\n", .{});
 }
