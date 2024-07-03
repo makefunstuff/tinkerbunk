@@ -59,7 +59,11 @@ pub fn main() !void {
             .TCP => try socket_server.start_server(),
             .WINDOW => try sdl_window.present_sdl_window(),
             // TODO: parse options for arguments
-            .BRR => try brr.brr(args[2]),
+            // TODO: fix compile errors
+            // .BRR => try brr.brr(args[2]),
+            else => {
+                return;
+            },
         }
     }
 
