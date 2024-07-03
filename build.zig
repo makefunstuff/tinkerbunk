@@ -25,6 +25,8 @@ pub fn build(b: *std.Build) void {
     // linking for linux only
     // TODO: link for mac later
     exe.linkSystemLibrary("SDL2");
+    exe.linkSystemLibrary("mpg123");
+    exe.linkSystemLibrary("alsa");
     exe.linkLibC();
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default

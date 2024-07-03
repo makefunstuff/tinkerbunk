@@ -2,6 +2,7 @@ const std = @import("std");
 const ls = @import("ls.zig");
 const socket_server = @import("socket-server.zig");
 const sdl_window = @import("sdl-window.zig");
+const brr = @import("brr.zig");
 
 const commands = [_]struct {
     name: []const u8,
@@ -48,7 +49,7 @@ pub fn main() !void {
         return;
     }
 
-    if (args.len == 2) {
+    if (args.len >= 2) {
         var argument = Arg{
             .name = args[1],
         };
@@ -57,9 +58,8 @@ pub fn main() !void {
             .LS => try ls.ls(),
             .TCP => try socket_server.start_server(),
             .WINDOW => try sdl_window.present_sdl_window(),
-            else => {
-                return;
-            },
+            // TODO: parse options for arguments
+            .BRR => try brr.brr(args[2]),
         }
     }
 
