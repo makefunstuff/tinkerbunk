@@ -4,6 +4,8 @@ const c = @cImport({
     @cInclude("alsa/asoundlib.h");
 });
 
+pub const snd_pcm_info_t = extern struct {};
+
 pub fn brr(file: []const u8) !void {
     _ = c.mpg123_init();
 
@@ -27,10 +29,20 @@ pub fn brr(file: []const u8) !void {
     var params: ?*c.snd_pcm_hw_params_t = null;
     _ = c.snd_pcm_hw_params_malloc(&params);
 
+    var encoding: c_int = 0;
+    var channels: c_int = 0;
+    var rate: c_long = 0;
+
+    if (c.mpg123_getformat(handle, &rate, &channels, &encoding) != c.MPG123_OK) {
+        std.log.warn("Failed to get format\n", .{});
+        return;
+    }
+
     _ = c.snd_pcm_hw_params(pcm, params);
+    _ = c.snd_pcm_hw_params_set_access(pcm, params, c.SND_PCM_ACCESS_RW_INTERLEAVED);
     _ = c.snd_pcm_hw_params_set_access(pcm, params, c.SND_PCM_FORMAT_S16_LE);
-    _ = c.snd_pcm_hw_params_set_channels(pcm, params, 2);
-    _ = c.snd_pcm_hw_params_set_rate(pcm, params, 44100, 0);
+    _ = c.snd_pcm_hw_params_set_channels(pcm, params, @intCast(channels));
+    _ = c.snd_pcm_hw_params_set_rate(pcm, params, @intCast(rate), 0);
 
     _ = c.snd_pcm_hw_params(pcm, params);
 
@@ -40,21 +52,37 @@ pub fn brr(file: []const u8) !void {
         var done: usize = 0;
         const result = c.mpg123_read(handle, &buffer[0], buffer.len, &done);
         switch (result) {
-            c.MPG123_OK => {
-                std.log.info("Reading successfule", .{});
+            c.MPG123_OK => {},
+            c.MPG123_DONE => {
+                std.log.info("Done reading", .{});
             },
             else => {
-                std.log.err("Decode error {}", .{result});
+                const plain_error = c.mpg123_plain_strerror(result);
+                std.log.err("Decode error {s}", .{plain_error});
             },
         }
 
         if (done == 0) {
-            _ = c.mpg123_delete(handle);
-            _ = c.snd_pcm_hw_params_free(params);
-            _ = c.snd_pcm_close(pcm);
             break;
         }
 
-        _ = c.snd_pcm_writei(pcm, &buffer[0], done / 4);
+        const frames_sent = c.snd_pcm_writei(pcm, &buffer[0], done / 4);
+        if (frames_sent < 0) {
+            std.log.err("Failed to write to ALSA device", .{});
+            // TODO: figure out how to deal with opaque status
+            var pcm_info: snd_pcm_info_t = snd_pcm_info_t{};
+            _ = c.snd_pcm_info_malloc(&pcm_info);
+            // _ = c.snd_pcm_info(pcm, &pcm_info);
+
+            defer c.snd_pcm_info_free(&pcm_info);
+            std.log.debug("pcm status is {any}", .{pcm_info});
+            return;
+        } else {
+            std.log.info("Frames sent: {d}", .{frames_sent});
+        }
     }
+    _ = c.mpg123_delete(handle);
+    _ = c.snd_pcm_hw_params_free(params);
+    _ = c.snd_pcm_close(pcm);
+    _ = c.mpg123_exit();
 }
