@@ -12,9 +12,9 @@ pub fn brr(file: []const u8) !void {
         return;
     };
 
-    const file_path = file.ptr;
-    if (c.mpg123_open(handle, file_path) != 0) {
-        std.log.warn("Filed to open the file: {s}\n", .{file_path});
+    const file_path: [*c]const u8 = @ptrCast(file);
+    if (c.mpg123_open(handle, file_path) != c.MPG123_OK) {
+        std.log.warn("Failed to open the file: {s}\n", .{file_path});
         return;
     }
 
@@ -23,6 +23,7 @@ pub fn brr(file: []const u8) !void {
         std.log.warn("Failed to open ALSA device\n", .{});
         return;
     }
+
     var params: ?*c.snd_pcm_hw_params_t = null;
     _ = c.snd_pcm_hw_params_malloc(&params);
 
@@ -37,7 +38,15 @@ pub fn brr(file: []const u8) !void {
 
     while (true) {
         var done: usize = 0;
-        _ = c.mpg123_read(handle, &buffer[0], buffer.len, &done);
+        const result = c.mpg123_read(handle, &buffer[0], buffer.len, &done);
+        switch (result) {
+            c.MPG123_OK => {
+                std.log.info("Reading successfule", .{});
+            },
+            else => {
+                std.log.err("Decode error {}", .{result});
+            },
+        }
 
         if (done == 0) {
             _ = c.mpg123_delete(handle);

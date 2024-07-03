@@ -49,7 +49,14 @@ pub fn main() !void {
         return;
     }
 
-    if (args.len >= 2) {
+    if (args.len == 3) {
+        if (std.mem.eql(u8, args[1], "brr")) {
+            try brr.brr(args[2]);
+            return;
+        }
+    }
+
+    if (args.len == 2) {
         var argument = Arg{
             .name = args[1],
         };
@@ -58,9 +65,6 @@ pub fn main() !void {
             .LS => try ls.ls(),
             .TCP => try socket_server.start_server(),
             .WINDOW => try sdl_window.present_sdl_window(),
-            // TODO: parse options for arguments
-            // TODO: fix compile errors
-            // .BRR => try brr.brr(args[2]),
             else => {
                 return;
             },
