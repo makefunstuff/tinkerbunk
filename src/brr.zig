@@ -55,9 +55,19 @@ pub fn brr(allocator: std.mem.Allocator, file: []const u8) !void {
     const buffer_ptr = @as([*c]u8, @ptrCast(&buffer[0]));
 
     while (c.mpg123_read(handle, buffer_ptr, buffer_size, &done) == c.MPG123_OK) {
-        const frames = @divExact(@as(c_ulong, @intCast(done)), @as(c_ulong, @intCast(channels * 2)));
+        std.log.info("Read {} bytes from MP3 file", .{done});
+        const frames = done / 4;
         std.log.debug("Starting sending", .{});
         const write_state = c.snd_pcm_writei(pcm, buffer_ptr, @as(c_ulong, frames));
+        if (write_state < 0) {
+            if (write_state == -c.EPIPE) { // Buffer underrun
+                _ = c.snd_pcm_prepare(pcm);
+            } else {
+                break;
+            }
+        } else if (write_state != frames) {
+            std.log.warn("Short write, expected {} frames but wrote {}\n", .{ frames, write_state });
+        }
         std.log.info("Written pcm frames {}", .{write_state});
     }
     _ = c.mpg123_delete(handle);
