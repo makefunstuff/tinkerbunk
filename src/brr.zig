@@ -4,10 +4,8 @@ const c = @cImport({
     @cInclude("alsa/asoundlib.h");
 });
 
-pub const snd_pcm_info_t = extern struct {};
-pub extern fn snd_pcm_info_malloc(pcm_info: *snd_pcm_info_t) void;
-pub extern fn snd_pcm_info(pcm: *c.snd_pcm_t, pcm_info: *snd_pcm_info_t) c_int;
-pub extern fn snd_pcm_info_free(pcm_info: *snd_pcm_info_t) void;
+const _op_snd_pcm_info_t = opaque {};
+const snd_pcm_info_t = ?*_op_snd_pcm_info_t;
 
 pub fn brr(file: []const u8) !void {
     _ = c.mpg123_init();
@@ -72,13 +70,16 @@ pub fn brr(file: []const u8) !void {
         const frames_sent = c.snd_pcm_writei(pcm, &buffer[0], done / 4);
         if (frames_sent < 0) {
             std.log.err("Failed to write to ALSA device", .{});
-            // TODO: figure out how to deal with opaque status
-            var pcm_info: snd_pcm_info_t = snd_pcm_info_t{};
-            snd_pcm_info_malloc(&pcm_info);
-            _ = snd_pcm_info(pcm, &pcm_info);
+            var pcm_info: snd_pcm_info_t = undefined;
+            const alloc_result = c.snd_pcm_info_malloc(@ptrCast(&pcm_info));
+            if (alloc_result == 0) {
+                std.log.err("Failed to allocate pcm info", .{});
+                return;
+            }
+            _ = c.snd_pcm_info(pcm, @ptrCast(&pcm_info));
 
-            defer snd_pcm_info_free(&pcm_info);
-            std.log.debug("pcm status is {any}", .{pcm_info});
+            std.log.debug("pcm_info {?}", .{pcm_info});
+            defer c.snd_pcm_info_free(@ptrCast(&pcm_info));
             return;
         } else {
             std.log.info("Frames sent: {d}", .{frames_sent});
