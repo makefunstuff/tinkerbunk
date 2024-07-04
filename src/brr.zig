@@ -4,13 +4,15 @@ const c = @cImport({
     @cInclude("alsa/asoundlib.h");
 });
 
-pub fn brr(file: []const u8) !void {
+pub fn brr(allocator: std.mem.Allocator, file: []const u8) !void {
     _ = c.mpg123_init();
 
     const handle = c.mpg123_new(null, null) orelse {
         std.log.warn("Failed to create mpg123 handle\n", .{});
         return;
     };
+
+    const buffer_size = c.mpg123_outblock(handle);
 
     const file_path: [*c]const u8 = @ptrCast(file);
     if (c.mpg123_open(handle, file_path) != c.MPG123_OK) {
@@ -41,17 +43,17 @@ pub fn brr(file: []const u8) !void {
 
     _ = c.snd_pcm_hw_params(pcm, params);
     _ = c.snd_pcm_hw_params_set_access(pcm, params, c.SND_PCM_ACCESS_RW_INTERLEAVED);
-    _ = c.snd_pcm_hw_params_set_access(pcm, params, c.SND_PCM_FORMAT_S16_LE);
-    _ = c.snd_pcm_hw_params_set_channels(pcm, params, @intCast(channels));
-    _ = c.snd_pcm_hw_params_set_rate(pcm, params, @intCast(rate), 0);
+    _ = c.snd_pcm_hw_params_set_channels(pcm, params, @as(c_uint, @intCast(channels)));
+    _ = c.snd_pcm_hw_params_set_rate(pcm, params, @as(c_uint, @intCast(rate)), 0);
 
     _ = c.snd_pcm_hw_params(pcm, params);
 
-    var buffer: [4096]u8 = undefined;
+    var buffer: []u8 = try allocator.alloc(u8, buffer_size);
+    defer allocator.free(buffer);
 
     while (true) {
         var done: usize = 0;
-        const result = c.mpg123_read(handle, &buffer[0], buffer.len, &done);
+        const result = c.mpg123_read(handle, &buffer[0], buffer_size, &done);
         switch (result) {
             c.MPG123_OK => {},
             c.MPG123_DONE => {
@@ -67,33 +69,17 @@ pub fn brr(file: []const u8) !void {
             break;
         }
 
-        const frames_sent = c.snd_pcm_writei(pcm, &buffer[0], done / 4);
-        if (frames_sent < 0) {
-            std.log.err("Failed to write to ALSA device", .{});
-            var status: ?*c.snd_pcm_status_t = null;
-            _ = c.snd_pcm_status_malloc(&status);
-            defer c.snd_pcm_status_free(status);
+        const write_state = c.snd_pcm_writei(pcm, &buffer[0], done / 2);
 
-            _ = c.snd_pcm_status(pcm, status);
-            const state = c.snd_pcm_status_get_state(status);
-
-            switch (state) {
-                c.SND_PCM_STATE_SUSPENDED => {
-                    std.log.warn("ALSA device is suspended", .{});
-                    _ = c.snd_pcm_resume(pcm);
-                },
-                c.SND_PCM_STATE_XRUN => {
-                    std.log.warn("ALSA device is in an XRUN state", .{});
-                    _ = c.snd_pcm_prepare(pcm);
-                },
-                else => {
-                    std.log.err("ALSA device is in an unknown state", .{});
-                },
-            }
-
-            return;
-        } else {
-            std.log.info("Frames sent: {d}", .{frames_sent});
+        switch (write_state) {
+            c.SND_ERROR_BEGIN => {
+                std.log.debug("SND_ERROR_BEGIN", .{});
+            },
+            else => {
+                const error_code: c_int = @as(c_int, @intCast(write_state));
+                const error_string = c.snd_strerror(error_code);
+                std.log.err("Failed {s}", .{error_string});
+            },
         }
     }
     _ = c.mpg123_delete(handle);
