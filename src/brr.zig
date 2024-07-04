@@ -26,12 +26,6 @@ pub fn brr(allocator: std.mem.Allocator, file: []const u8) !void {
         return;
     }
 
-    var params: ?*c.snd_pcm_hw_params_t = null;
-    if (c.snd_pcm_hw_params_malloc(&params) < 0) {
-        std.log.warn("Failed to allocate ALSA hardware parameters\n", .{});
-        return;
-    }
-
     var encoding: c_int = 0;
     var channels: c_int = 0;
     var rate: c_long = 0;
@@ -41,46 +35,30 @@ pub fn brr(allocator: std.mem.Allocator, file: []const u8) !void {
         return;
     }
 
+    var params: ?*c.snd_pcm_hw_params_t = null;
+    if (c.snd_pcm_hw_params_malloc(&params) < 0) {
+        std.log.warn("Failed to allocate ALSA hardware parameters\n", .{});
+        return;
+    }
+    _ = c.snd_pcm_hw_params_any(pcm, params);
     _ = c.snd_pcm_hw_params(pcm, params);
     _ = c.snd_pcm_hw_params_set_access(pcm, params, c.SND_PCM_ACCESS_RW_INTERLEAVED);
+    _ = c.snd_pcm_hw_params_set_format(pcm, params, c.SND_PCM_FORMAT_S16_LE);
     _ = c.snd_pcm_hw_params_set_channels(pcm, params, @as(c_uint, @intCast(channels)));
     _ = c.snd_pcm_hw_params_set_rate(pcm, params, @as(c_uint, @intCast(rate)), 0);
-
     _ = c.snd_pcm_hw_params(pcm, params);
 
+    var done: usize = 0;
     var buffer: []u8 = try allocator.alloc(u8, buffer_size);
     defer allocator.free(buffer);
 
-    while (true) {
-        var done: usize = 0;
-        const result = c.mpg123_read(handle, &buffer[0], buffer_size, &done);
-        switch (result) {
-            c.MPG123_OK => {},
-            c.MPG123_DONE => {
-                std.log.info("Done reading", .{});
-            },
-            else => {
-                const plain_error = c.mpg123_plain_strerror(result);
-                std.log.err("Decode error {s}", .{plain_error});
-            },
-        }
+    const buffer_ptr = @as([*c]u8, @ptrCast(&buffer[0]));
 
-        if (done == 0) {
-            break;
-        }
-
-        const write_state = c.snd_pcm_writei(pcm, &buffer[0], done / 2);
-
-        switch (write_state) {
-            c.SND_ERROR_BEGIN => {
-                std.log.debug("SND_ERROR_BEGIN", .{});
-            },
-            else => {
-                const error_code: c_int = @as(c_int, @intCast(write_state));
-                const error_string = c.snd_strerror(error_code);
-                std.log.err("Failed {s}", .{error_string});
-            },
-        }
+    while (c.mpg123_read(handle, buffer_ptr, buffer_size, &done) == c.MPG123_OK) {
+        const frames = @divExact(@as(c_ulong, @intCast(done)), @as(c_ulong, @intCast(channels * 2)));
+        std.log.debug("Starting sending", .{});
+        const write_state = c.snd_pcm_writei(pcm, buffer_ptr, @as(c_ulong, frames));
+        std.log.info("Written pcm frames {}", .{write_state});
     }
     _ = c.mpg123_delete(handle);
     _ = c.snd_pcm_hw_params_free(params);
