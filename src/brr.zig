@@ -4,9 +4,6 @@ const c = @cImport({
     @cInclude("alsa/asoundlib.h");
 });
 
-const _op_snd_pcm_info_t = opaque {};
-const snd_pcm_info_t = ?*_op_snd_pcm_info_t;
-
 pub fn brr(file: []const u8) !void {
     _ = c.mpg123_init();
 
@@ -28,7 +25,10 @@ pub fn brr(file: []const u8) !void {
     }
 
     var params: ?*c.snd_pcm_hw_params_t = null;
-    _ = c.snd_pcm_hw_params_malloc(&params);
+    if (c.snd_pcm_hw_params_malloc(&params) < 0) {
+        std.log.warn("Failed to allocate ALSA hardware parameters\n", .{});
+        return;
+    }
 
     var encoding: c_int = 0;
     var channels: c_int = 0;
@@ -70,16 +70,27 @@ pub fn brr(file: []const u8) !void {
         const frames_sent = c.snd_pcm_writei(pcm, &buffer[0], done / 4);
         if (frames_sent < 0) {
             std.log.err("Failed to write to ALSA device", .{});
-            var pcm_info: snd_pcm_info_t = undefined;
-            const alloc_result = c.snd_pcm_info_malloc(@ptrCast(&pcm_info));
-            if (alloc_result == 0) {
-                std.log.err("Failed to allocate pcm info", .{});
-                return;
-            }
-            _ = c.snd_pcm_info(pcm, @ptrCast(&pcm_info));
+            var status: ?*c.snd_pcm_status_t = null;
+            _ = c.snd_pcm_status_malloc(&status);
+            defer c.snd_pcm_status_free(status);
 
-            std.log.debug("pcm_info {?}", .{pcm_info});
-            defer c.snd_pcm_info_free(@ptrCast(&pcm_info));
+            _ = c.snd_pcm_status(pcm, status);
+            const state = c.snd_pcm_status_get_state(status);
+
+            switch (state) {
+                c.SND_PCM_STATE_SUSPENDED => {
+                    std.log.warn("ALSA device is suspended", .{});
+                    _ = c.snd_pcm_resume(pcm);
+                },
+                c.SND_PCM_STATE_XRUN => {
+                    std.log.warn("ALSA device is in an XRUN state", .{});
+                    _ = c.snd_pcm_prepare(pcm);
+                },
+                else => {
+                    std.log.err("ALSA device is in an unknown state", .{});
+                },
+            }
+
             return;
         } else {
             std.log.info("Frames sent: {d}", .{frames_sent});
