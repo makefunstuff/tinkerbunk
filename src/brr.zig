@@ -11,8 +11,6 @@ pub fn brr(allocator: std.mem.Allocator, file: [*:0]const u8) !void {
         return;
     };
 
-    std.log.debug("file {s}", .{file});
-
     if (c.mpg123_open(handle, file) != c.MPG123_OK) {
         std.log.warn("Failed to open the file: {s}\n", .{file});
         return;
