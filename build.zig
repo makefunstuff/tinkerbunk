@@ -26,8 +26,11 @@ pub fn build(b: *std.Build) void {
     // TODO: link for mac later
     exe.linkSystemLibrary("SDL2");
     exe.linkSystemLibrary("mpg123");
-    exe.linkSystemLibrary("alsa");
+    exe.linkSystemLibrary("asound");
     exe.linkLibC();
+    exe.addCSourceFile(.{ .file = b.path("csrc/cbrr.c"), .flags = &.{} });
+    exe.addIncludePath(b.path("./csrc"));
+
     // This declares intent for the executable to be installed into the
     // standard location when the user invokes the "install" step (the default
     // step when running `zig build`).
