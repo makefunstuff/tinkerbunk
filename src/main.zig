@@ -51,7 +51,7 @@ pub fn main() !void {
 
     if (args.len == 3) {
         if (std.mem.eql(u8, args[1], "brr")) {
-            try brr.brr(allocator, args[2]);
+            try brr.brr(std.heap.c_allocator, args[2]);
             return;
         }
     }

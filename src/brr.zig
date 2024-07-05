@@ -4,16 +4,17 @@ const c = @cImport({
     @cInclude("alsa/asoundlib.h");
 });
 
-pub fn brr(allocator: std.mem.Allocator, file: []const u8) !void {
+pub fn brr(allocator: std.mem.Allocator, file: [*:0]const u8) !void {
     _ = c.mpg123_init();
     const handle = c.mpg123_new(null, null) orelse {
         std.log.warn("Failed to create mpg123 handle\n", .{});
         return;
     };
 
-    const file_path: [*c]const u8 = @ptrCast(file);
-    if (c.mpg123_open(handle, file_path) != c.MPG123_OK) {
-        std.log.warn("Failed to open the file: {s}\n", .{file_path});
+    std.log.debug("file {s}", .{file});
+
+    if (c.mpg123_open(handle, file) != c.MPG123_OK) {
+        std.log.warn("Failed to open the file: {s}\n", .{file});
         return;
     }
 
@@ -39,7 +40,6 @@ pub fn brr(allocator: std.mem.Allocator, file: []const u8) !void {
     }
 
     _ = c.snd_pcm_hw_params_any(pcm, params);
-    _ = c.snd_pcm_hw_params(pcm, params);
     _ = c.snd_pcm_hw_params_set_access(pcm, params, c.SND_PCM_ACCESS_RW_INTERLEAVED);
     _ = c.snd_pcm_hw_params_set_format(pcm, params, c.SND_PCM_FORMAT_S16_LE);
     _ = c.snd_pcm_hw_params_set_channels(pcm, params, @as(c_uint, @intCast(channels)));
@@ -56,9 +56,21 @@ pub fn brr(allocator: std.mem.Allocator, file: []const u8) !void {
     _ = &mpg123_buffer;
     defer allocator.free(mpg123_buffer);
 
-    while (c.mpg123_read(handle, @as(?*anyopaque, @ptrCast(mpg123_buffer.ptr)), buffer_size, &done) == c.MPG123_OK) {
-        _ = c.snd_pcm_writei(pcm, @as(?*anyopaque, @ptrCast(mpg123_buffer.ptr)), done / 4);
+    var result: c_int = 0;
+    while (true) {
+        result = c.mpg123_read(handle, @as(?*anyopaque, @ptrCast(mpg123_buffer.ptr)), buffer_size, &done);
+        switch (result) {
+            c.MPG123_OK => {
+                _ = c.snd_pcm_writei(pcm, @as(?*anyopaque, @ptrCast(mpg123_buffer.ptr)), done / 4);
+            },
+            else => {
+                const err_str = c.mpg123_strerror(handle);
+                std.log.warn("Failed to read from file\n {}, {s}", .{ result, err_str });
+                break;
+            },
+        }
     }
+
     _ = c.mpg123_delete(handle);
     _ = c.snd_pcm_hw_params_free(params);
     _ = c.snd_pcm_close(pcm);
