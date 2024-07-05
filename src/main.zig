@@ -3,6 +3,11 @@ const ls = @import("ls.zig");
 const socket_server = @import("socket-server.zig");
 const sdl_window = @import("sdl-window.zig");
 const brr = @import("brr.zig");
+const cbrr = @cImport({
+    @cInclude("cbrr.h");
+});
+
+extern fn brr_c(filepath: [*:0]const u8) void;
 
 const commands = [_]struct {
     name: []const u8,
@@ -51,7 +56,7 @@ pub fn main() !void {
 
     if (args.len == 3) {
         if (std.mem.eql(u8, args[1], "brr")) {
-            try brr.brr(allocator, args[2]);
+            brr_c(args[2]);
             return;
         }
     }
