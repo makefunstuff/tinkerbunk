@@ -2,12 +2,7 @@ const std = @import("std");
 const ls = @import("ls.zig");
 const socket_server = @import("socket-server.zig");
 const sdl_window = @import("sdl-window.zig");
-const brr = @import("brr.zig");
-const cbrr = @cImport({
-    @cInclude("cbrr.h");
-});
-
-extern fn brr_c(filepath: [*:0]const u8) void;
+const lame = @import("lame.zig");
 
 const commands = [_]struct {
     name: []const u8,
@@ -54,12 +49,7 @@ pub fn main() !void {
         return;
     }
 
-    if (args.len == 3) {
-        if (std.mem.eql(u8, args[1], "brr")) {
-            brr_c(args[2]);
-            return;
-        }
-    }
+    try lame.init_lame("static/sample.mp3");
 
     if (args.len == 2) {
         var argument = Arg{
