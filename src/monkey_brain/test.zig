@@ -1,4 +1,4 @@
-pub const main = @import("main.zig");
+pub const perceptron = @import("perceptron.zig");
 
 test {
     @import("std").testing.refAllDecls(@This());
