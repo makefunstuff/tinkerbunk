@@ -7,6 +7,8 @@ const training_set_size: usize = 4;
 const learning_rate: f64 = 0.1;
 const epochs: u64 = 1000000;
 
+// https://en.wikipedia.org/wiki/Sigmoid_function - more details
+// https://www.youtube.com/watch?v=TPqr8t919YM
 fn sigmoid(x: f64) f64 {
     return 1.0 / (1.0 + math.exp(-x));
 }
