@@ -15,42 +15,44 @@ pub fn build(b: *std.Build) void {
     // set a preferred release mode, allowing the user to decide how to optimize.
     const optimize = b.standardOptimizeOption(.{});
 
-    const exe = b.addExecutable(.{
-        .name = "tinkerbunk",
-        .root_source_file = b.path("src/main.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
+    if (target.query.os_tag == .linux) {
+        const exe = b.addExecutable(.{
+            .name = "tinkerbunk",
+            .root_source_file = b.path("src/main.zig"),
+            .target = target,
+            .optimize = optimize,
+        });
 
-    exe.linkSystemLibrary("SDL2");
-    exe.linkSystemLibrary("mpg123");
-    exe.linkSystemLibrary("asound");
-    exe.linkLibC();
-    exe.addCSourceFile(.{ .file = b.path("csrc/cbrr.c"), .flags = &.{} });
-    exe.addIncludePath(b.path("./csrc"));
+        exe.linkSystemLibrary("SDL2");
+        exe.linkSystemLibrary("mpg123");
+        exe.linkSystemLibrary("asound");
+        exe.linkLibC();
+        exe.addCSourceFile(.{ .file = b.path("csrc/cbrr.c"), .flags = &.{} });
+        exe.addIncludePath(b.path("./csrc"));
 
-    b.installArtifact(exe);
+        b.installArtifact(exe);
 
-    const run_cmd = b.addRunArtifact(exe);
-    run_cmd.step.dependOn(b.getInstallStep());
+        const run_cmd = b.addRunArtifact(exe);
+        run_cmd.step.dependOn(b.getInstallStep());
 
-    // This allows the user to pass arguments to the application in the build
-    // command itself, like this: `zig build run -- arg1 arg2 etc`
-    if (b.args) |args| {
-        run_cmd.addArgs(args);
+        // This allows the user to pass arguments to the application in the build
+        // command itself, like this: `zig build run -- arg1 arg2 etc`
+        if (b.args) |args| {
+            run_cmd.addArgs(args);
+        }
+
+        const run_step = b.step("run", "Run the app");
+        run_step.dependOn(&run_cmd.step);
+
+        const exe_unit_tests = b.addTest(.{
+            .root_source_file = b.path("src/main.zig"),
+            .target = target,
+            .optimize = optimize,
+        });
+        const run_exe_unit_tests = b.addRunArtifact(exe_unit_tests);
+        const test_step = b.step("test", "Run unit tests");
+        test_step.dependOn(&run_exe_unit_tests.step);
     }
-
-    const run_step = b.step("run", "Run the app");
-    run_step.dependOn(&run_cmd.step);
-
-    const exe_unit_tests = b.addTest(.{
-        .root_source_file = b.path("src/main.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    const run_exe_unit_tests = b.addRunArtifact(exe_unit_tests);
-    const test_step = b.step("test", "Run unit tests");
-    test_step.dependOn(&run_exe_unit_tests.step);
 
     // monkey brains
     const monkey_brain = b.addExecutable(.{
