@@ -12,9 +12,15 @@ Just recreational programming doing some probably useless stuff
 ## TODO:
 This is pool of ideas of what to implement in zig
 
-- [x] naive ls implementation
-- [x] naive socket server
-- [ ] naive grep implementation
-- [x] render some stuff with sdl
-- [ ] play with raylib
-- [x] interop with c project
+- [ ] simple neural networks - in progress
+- [ ] basic ml algorithms
+- [ ] pong
+- [ ] simple web server
+- [ ] esp32 stuff
+- [ ] simple os
+- [ ] naive docker clone
+- [ ] naive data storage
+- [ ] naive git
+- [ ] improve cli args parser
+- [ ] play with markow chains
+- [ ] btree index for toy db
