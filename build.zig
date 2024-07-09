@@ -1,9 +1,35 @@
 const std = @import("std");
 
-// Although this function looks imperative, note that its job is to
-// declaratively construct a build graph that will be executed by an external
-// runner.
-pub fn build(b: *std.Build) void {
+fn define_subproj(name: []const u8, b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) !void {
+    const exe_path = try std.fmt.allocPrint(b.allocator, "src/{s}/main.zig", .{name});
+    const test_path = try std.fmt.allocPrint(b.allocator, "src/{s}/test.zig", .{name});
+    const run_task_name = try std.fmt.allocPrint(b.allocator, "run_{s}", .{name});
+    const run_task_desc = try std.fmt.allocPrint(b.allocator, "Run {s}", .{name});
+    const test_task_name = try std.fmt.allocPrint(b.allocator, "test_{s}", .{name});
+    const test_task_desc = try std.fmt.allocPrint(b.allocator, "Run tests for {s}", .{name});
+
+    const exe = b.addExecutable(.{
+        .name = name,
+        .root_source_file = b.path(exe_path),
+        .target = target,
+        .optimize = optimize,
+    });
+    b.installArtifact(exe);
+
+    const run_cmd = b.addRunArtifact(exe);
+    run_cmd.step.dependOn(b.getInstallStep());
+
+    const run_step = b.step(run_task_name, run_task_desc);
+    run_step.dependOn(&run_cmd.step);
+
+    const test_exe = b.addTest(.{ .root_source_file = b.path(test_path), .target = target, .optimize = optimize });
+
+    const test_cmd = b.addRunArtifact(test_exe);
+    const test_step = b.step(test_task_name, test_task_desc);
+    test_step.dependOn(&test_cmd.step);
+}
+
+pub fn build(b: *std.Build) !void {
     // Standard target options allows the person running `zig build` to choose
     // what target to build for. Here we do not override the defaults, which
     // means any target is allowed, and the default is native. Other options
@@ -54,24 +80,6 @@ pub fn build(b: *std.Build) void {
         test_step.dependOn(&run_exe_unit_tests.step);
     }
 
-    // monkey brains
-    const monkey_brain = b.addExecutable(.{
-        .name = "monkey_brain",
-        .root_source_file = b.path("src/monkey_brain/main.zig"),
-        .target = target,
-        .optimize = optimize,
-    });
-    b.installArtifact(monkey_brain);
-
-    const monkey_brain_run = b.addRunArtifact(monkey_brain);
-    monkey_brain_run.step.dependOn(b.getInstallStep());
-
-    const monkey_run_step = b.step("monkey_run", "Run the monkey brain");
-    monkey_run_step.dependOn(&monkey_brain_run.step);
-
-    const monkey_test_exec = b.addTest(.{ .root_source_file = b.path("src/monkey_brain/test.zig"), .target = target, .optimize = optimize });
-
-    const monkey_test_run = b.addRunArtifact(monkey_test_exec);
-    const monkey_test_step = b.step("monkey_test", "Run monkey brain cells test");
-    monkey_test_step.dependOn(&monkey_test_run.step);
+    try define_subproj("monkey_brain", b, target, optimize);
+    try define_subproj("monkey_learns", b, target, optimize);
 }
