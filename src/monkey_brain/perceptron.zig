@@ -5,7 +5,7 @@ const math = std.math;
 const input_size: usize = 2;
 const training_set_size: usize = 4;
 const learning_rate: f64 = 0.1;
-const epochs: u64 = 1000000;
+const epochs: u64 = 10000;
 
 // https://en.wikipedia.org/wiki/Sigmoid_function - more details
 // https://www.youtube.com/watch?v=TPqr8t919YM
@@ -40,8 +40,8 @@ fn train(weights: *[input_size]f64, bias: *f64, training_data: [training_set_siz
 }
 
 pub fn demo() !void {
-    var weights = [_]f64{ std.crypto.random.float(f64), std.crypto.random.float(f64) };
-    var bias: f64 = std.crypto.random.float(f64);
+    var weights = [_]f64{ std.crypto.random.float(f64) * 2 - 1, std.crypto.random.float(f64) * 2 - 1 };
+    var bias: f64 = std.crypto.random.float(f64) * 2 - 1;
 
     const training_data = [_][input_size]f64{
         .{ 0, 0 },
@@ -63,8 +63,8 @@ pub fn demo() !void {
 }
 
 test "OR gate" {
-    var weights = [_]f64{ 0, 0 };
-    var bias: f64 = 0;
+    var weights = [_]f64{ 0.3, 0.2 };
+    var bias: f64 = 0.5;
 
     const training_data = [_][input_size]f64{
         .{ 0, 0 },
@@ -78,6 +78,10 @@ test "OR gate" {
 
     for (training_data, labels) |inputs, expected| {
         const prediction = predict(weights, bias, inputs);
-        try testing.expect((prediction - expected) < 0.1);
+        const predicted_error = prediction - expected;
+        std.debug.print("Predicted error {}\n", .{predicted_error});
+        std.debug.print("Predicted: {} | Expected: {}\n", .{ prediction, expected });
+
+        try testing.expect(predicted_error < 0.1);
     }
 }

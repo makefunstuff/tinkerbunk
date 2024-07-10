@@ -23,10 +23,9 @@ fn define_subproj(name: []const u8, b: *std.Build, target: std.Build.ResolvedTar
     run_step.dependOn(&run_cmd.step);
 
     const test_exe = b.addTest(.{ .root_source_file = b.path(test_path), .target = target, .optimize = optimize });
-
-    const test_cmd = b.addRunArtifact(test_exe);
+    const run_unit_tests = b.addRunArtifact(test_exe);
     const test_step = b.step(test_task_name, test_task_desc);
-    test_step.dependOn(&test_cmd.step);
+    test_step.dependOn(&run_unit_tests.step);
 }
 
 pub fn build(b: *std.Build) !void {
