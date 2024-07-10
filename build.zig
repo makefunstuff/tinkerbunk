@@ -28,6 +28,30 @@ fn define_subproj(name: []const u8, b: *std.Build, target: std.Build.ResolvedTar
     test_step.dependOn(&run_unit_tests.step);
 }
 
+fn build_raycaster(b: *std.Build, target: std.Build.ResolvedTarget, optimize: std.builtin.OptimizeMode) !void {
+    const exe = b.addExecutable(.{
+        .name = "monkey_ray",
+        .root_source_file = b.path("src/monkey_ray/main.zig"),
+        .target = target,
+        .optimize = optimize,
+    });
+
+    // Add SDL2
+    exe.linkSystemLibrary("SDL2");
+    exe.linkLibC();
+
+    b.installArtifact(exe);
+
+    const run_cmd = b.addRunArtifact(exe);
+    run_cmd.step.dependOn(b.getInstallStep());
+    if (b.args) |args| {
+        run_cmd.addArgs(args);
+    }
+
+    const run_step = b.step("run_monkey", "Run the app");
+    run_step.dependOn(&run_cmd.step);
+}
+
 pub fn build(b: *std.Build) !void {
     // Standard target options allows the person running `zig build` to choose
     // what target to build for. Here we do not override the defaults, which
@@ -81,4 +105,5 @@ pub fn build(b: *std.Build) !void {
 
     try define_subproj("monkey_brain", b, target, optimize);
     try define_subproj("monkey_learns", b, target, optimize);
+    try build_raycaster(b, target, optimize);
 }
