@@ -24,3 +24,6 @@ This is pool of ideas of what to implement in zig
 - [ ] improve cli args parser
 - [ ] play with markow chains
 - [ ] btree index for toy db
+
+## More ideas
+https://github.com/practical-tutorials/project-based-learning?tab=readme-ov-file#cc

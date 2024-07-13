@@ -81,4 +81,14 @@ pub fn build(b: *std.Build) !void {
 
     try define_subproj("monkey_brain", b, target, optimize);
     try define_subproj("monkey_learns", b, target, optimize);
+
+    const cprog = b.addExecutable(.{ .name = "cprog", .target = target, .optimize = optimize });
+    cprog.linkLibC();
+    cprog.addCSourceFiles(.{ .files = &.{ "csrc/cp.c", "csrc/main.c", "csrc/wc.c", "csrc/sh.c", "csrc/stat.c", "csrc/http.c" }, .flags = &.{} });
+    b.installArtifact(cprog);
+
+    const run_c_cmd = b.addRunArtifact(cprog);
+    run_c_cmd.step.dependOn(b.getInstallStep());
+    const runc_step = b.step("runc", "Run c prog");
+    runc_step.dependOn(&run_c_cmd.step);
 }
