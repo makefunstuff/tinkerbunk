@@ -1,5 +1,6 @@
 #include "cp.h"
 #include "http.h"
+#include "ps.h"
 #include "sh.h"
 #include "stat.h"
 #include "wc.h"
@@ -41,5 +42,10 @@ int main(int argc, char *argv[]) {
   } else if (strncmp(command, "http", 4) == 0) {
     int port = atoi(argv[2]);
     start_server(port);
+  } else if (strncmp(command, "ps", 2) == 0) {
+    if (ps() == PS_ERR) {
+      return 1;
+    };
   }
+  return 0;
 }

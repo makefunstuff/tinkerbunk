@@ -84,7 +84,7 @@ pub fn build(b: *std.Build) !void {
 
     const cprog = b.addExecutable(.{ .name = "cprog", .target = target, .optimize = optimize });
     cprog.linkLibC();
-    cprog.addCSourceFiles(.{ .files = &.{ "csrc/cp.c", "csrc/main.c", "csrc/wc.c", "csrc/sh.c", "csrc/stat.c", "csrc/http.c" }, .flags = &.{} });
+    cprog.addCSourceFiles(.{ .files = &.{ "csrc/cp.c", "csrc/main.c", "csrc/wc.c", "csrc/sh.c", "csrc/stat.c", "csrc/http.c", "csrc/ps.c" }, .flags = &.{} });
     b.installArtifact(cprog);
 
     const run_c_cmd = b.addRunArtifact(cprog);
